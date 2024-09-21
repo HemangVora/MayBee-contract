@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract PollyMarket {
+contract MayBee {
     struct Market {
         string description;
         uint256 expirationDate;
@@ -19,6 +19,13 @@ contract PollyMarket {
 
     mapping(uint256 => Market) public markets;
     mapping(uint256 => mapping(address => Bet)) public userBets;
+
+    event BetDeposited(
+        uint256 indexed marketId,
+        address indexed user,
+        bool isYes,
+        uint256 amount
+    );
 
     uint256 public marketCount;
     address public owner;
@@ -80,25 +87,45 @@ contract PollyMarket {
 
         emit MarketCreated(marketCount, _description, _expirationDate);
     }
-
-    function placeBet(
+    function deposit(
         uint256 _marketId,
-        bool _isYes
+        bool _isYes,
+        uint256 _amount
     ) external payable marketOpen(_marketId) {
-        require(msg.value > 0, "Bet amount must be greater than 0");
+        require(_amount > 0, "Deposit amount must be greater than 0");
 
         Bet storage userBet = userBets[_marketId][msg.sender];
         Market storage market = markets[_marketId];
 
         if (_isYes) {
-            userBet.yesAmount += msg.value;
-            market.totalYesAmount += msg.value;
+            userBet.yesAmount += _amount;
+            market.totalYesAmount += _amount;
         } else {
-            userBet.noAmount += msg.value;
-            market.totalNoAmount += msg.value;
+            userBet.noAmount += _amount;
+            market.totalNoAmount += _amount;
         }
 
-        emit BetPlaced(_marketId, msg.sender, _isYes, msg.value);
+        emit BetDeposited(_marketId, msg.sender, _isYes, _amount);
+    }
+    function placeBet(
+        uint256 _marketId,
+        bool _isYes,
+        uint256 _amount
+    ) external marketOpen(_marketId) {
+        require(_amount > 0, "Bet amount must be greater than 0");
+
+        Bet storage userBet = userBets[_marketId][msg.sender];
+        Market storage market = markets[_marketId];
+
+        if (_isYes) {
+            userBet.yesAmount += _amount;
+            market.totalYesAmount += _amount;
+        } else {
+            userBet.noAmount += _amount;
+            market.totalNoAmount += _amount;
+        }
+
+        emit BetPlaced(_marketId, msg.sender, _isYes, _amount);
     }
 
     function resolveMarket(
@@ -172,5 +199,10 @@ contract PollyMarket {
     ) external view returns (uint256 yesAmount, uint256 noAmount) {
         Bet storage userBet = userBets[_marketId][_user];
         return (userBet.yesAmount, userBet.noAmount);
+    }
+
+    // New function to get the contract's balance
+    function getContractBalance() external view returns (uint256) {
+        return address(this).balance;
     }
 }
