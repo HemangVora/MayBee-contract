@@ -19,7 +19,8 @@ contract MayBee {
 
     mapping(uint256 => Market) public markets;
     mapping(uint256 => mapping(address => Bet)) public userBets;
-
+    // Variable to track the number of created markets
+    uint256 public marketCount;
     event BetDeposited(
         uint256 indexed marketId,
         address indexed user,
@@ -27,7 +28,6 @@ contract MayBee {
         uint256 amount
     );
 
-    uint256 public marketCount;
     address public owner;
 
     event MarketCreated(
@@ -74,7 +74,6 @@ contract MayBee {
             "Expiration date must be in the future"
         );
 
-        marketCount++;
         markets[marketCount] = Market({
             description: _description,
             expirationDate: _expirationDate,
@@ -84,7 +83,7 @@ contract MayBee {
             outcome: false,
             admin: msg.sender
         });
-
+        marketCount++;
         emit MarketCreated(marketCount, _description, _expirationDate);
     }
     function deposit(
@@ -192,7 +191,47 @@ contract MayBee {
             market.outcome
         );
     }
+    // Function to retrieve all market information
+    function getAllMarkets()
+        external
+        view
+        returns (
+            string[] memory descriptions,
+            uint256[] memory expirationDates,
+            uint256[] memory totalYesAmounts,
+            uint256[] memory totalNoAmounts,
+            bool[] memory isResolveds,
+            bool[] memory outcomes
+        )
+    {
+        // Initialize dynamic arrays with the size of marketCount
+        descriptions = new string[](marketCount);
+        expirationDates = new uint256[](marketCount);
+        totalYesAmounts = new uint256[](marketCount);
+        totalNoAmounts = new uint256[](marketCount);
+        isResolveds = new bool[](marketCount);
+        outcomes = new bool[](marketCount);
 
+        // Loop through each market and fill the arrays
+        for (uint256 i = 0; i < marketCount; i++) {
+            Market storage market = markets[i];
+            descriptions[i] = market.description;
+            expirationDates[i] = market.expirationDate;
+            totalYesAmounts[i] = market.totalYesAmount;
+            totalNoAmounts[i] = market.totalNoAmount;
+            isResolveds[i] = market.isResolved;
+            outcomes[i] = market.outcome;
+        }
+
+        return (
+            descriptions,
+            expirationDates,
+            totalYesAmounts,
+            totalNoAmounts,
+            isResolveds,
+            outcomes
+        );
+    }
     function getUserBet(
         uint256 _marketId,
         address _user
